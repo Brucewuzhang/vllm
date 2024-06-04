@@ -153,7 +153,8 @@ class OpenAIServingChat(OpenAIServing):
                 conversation.extend(parsed_msg.messages)
         
             if request.tools:
-                conversation[-1]['content'] = conversation[-1]['content'] + f"\n\nYou have access to the following functions, use them if required: {', '.join([json.dumps({"name": tool.function.name, "description": tool.function.description, "parameters": tool.function.parameters}) for tool in request.tools])}"
+                function_string = ", ".join([json.dumps({"name": tool.function.name, "description": tool.function.description, "parameters": tool.function.parameters}) for tool in request.tools])
+                conversation[-1]['content'] = conversation[-1]['content'] + f"\n\nYou have access to the following functions, use them if required: {function_string}"
                 prompt = self.tokenizer.apply_chat_template(
                     conversation=conversation,
                     tokenize=False,
