@@ -28,6 +28,8 @@ from vllm.outputs import RequestOutput
 from vllm.sequence import Logprob
 from vllm.utils import random_uuid
 
+import json
+
 logger = init_logger(__name__)
 
 
@@ -149,12 +151,21 @@ class OpenAIServingChat(OpenAIServing):
                 parsed_msg = self._parse_chat_message_content(msg)
 
                 conversation.extend(parsed_msg.messages)
-
-            prompt = self.tokenizer.apply_chat_template(
-                conversation=conversation,
-                tokenize=False,
-                add_generation_prompt=request.add_generation_prompt,
-            )
+        
+            if request.tools:
+                conversation[-1]['content'] = conversation[-1]['content'] + f"\n\nYou have access to the following functions, use them if required: {', '.join([json.dumps(tool.function) for tool in request.tools])}"
+                prompt = self.tokenizer.apply_chat_template(
+                    conversation=conversation,
+                    tokenize=False,
+                    add_generation_prompt=False,
+                )
+                prompt += "<|im_start|>function-call\n"
+            else:
+                prompt = self.tokenizer.apply_chat_template(
+                    conversation=conversation,
+                    tokenize=False,
+                    add_generation_prompt=request.add_generation_prompt,
+                )
         except Exception as e:
             logger.error("Error in applying chat template from request: %s", e)
             return self.create_error_response(str(e))
